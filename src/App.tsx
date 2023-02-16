@@ -1,9 +1,16 @@
 import React from "react";
+import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { NotFoundPage, HomeScreen } from "./pages/Index";
 
 const App = () => {
   return (
     <>
-      <h1>Prueba</h1>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomeScreen />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </BrowserRouter>
     </>
   );
 };
