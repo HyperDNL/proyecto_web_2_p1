@@ -1,5 +1,4 @@
-interface Types {
-  id: number;
+export default interface Types {
   name: string;
   damage_relations: {
     no_damage_to: [
@@ -34,5 +33,3 @@ interface Types {
     ];
   };
 }
-
-export default Types;
