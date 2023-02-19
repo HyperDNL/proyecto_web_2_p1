@@ -1,4 +1,4 @@
-interface Pokemon {
+export default interface Pokemon {
   id: number;
   name: string;
   types: [
@@ -10,14 +10,18 @@ interface Pokemon {
       };
     }
   ];
-  abilities: [
+  moves: [
     {
-      slot: number;
-      ability: {
+      move: {
         name: string;
       };
     }
   ];
+  sprites: {
+    other: {
+      dream_world: {
+        front_default: string;
+      };
+    };
+  };
 }
-
-export default Pokemon;
