@@ -4,7 +4,9 @@ import Pokemon from "../interfaces/PokemonInterface";
 import Types from "../interfaces/TypesInterface";
 import DescriptionPokemon from "../interfaces/DescriptionInterface";
 
+
 export const HomeScreen = () => {
+
   const [pokemon, setPokemon] = useState<Pokemon>(); // Estado de la información general del Pokemon
   const [description, setDescription] = useState<DescriptionPokemon>(); // Estado que almacena las descripciones
   const [types, setTypes] = useState<Types[]>(); // Estado de la información de los tipos del Pokemon
@@ -72,22 +74,54 @@ export const HomeScreen = () => {
   }; // Hace la petición del Pokemon y regresa objetos con la información requerida
 
   useEffect(() => {
-    getPokemon("charizard"); // La función puede recibir un parámetro entero o string
+    getPokemon("bronzong"); // La función puede recibir un parámetro entero o string
   }, []); // Ejecuta la función que pide la información del Pokemon una vez
 
-  // Crear una función que reestructure la información del Pokemon con los datos necesarios para la interfaz del estado "pokemon"
+ 
+  
+  const movesOder = pokemon?.moves.sort((nameA , nameB) =>{
+    if (nameA.move.name > nameB.move.name) return 1;
+    if (nameA.move.name  < nameB.move.name) return -1;
+    return 0;
+  })  
 
-  // Crear una función para buscar la descripción del Pokemon en español en el estado de "description"
+  const damage = types?.map((value) => value.damage_relations)
+  
+  const PokemonInterface = {
+    id : pokemon?.id,
+    name: pokemon?.name,
+    description : description?.flavor_text_entries,
+    Moves: movesOder,
+    type : pokemon?.types,
+    damage : damage,
+    evolution : evolutionPokemon,   
+    img : pokemon?.sprites.other.dream_world.front_default 
+  }
 
-  // Crear una función que reestructure la información de los tipos con los datos necesarios para la interfaz del estado "types"
 
-  // Crear una función que ordena los movimientos del Pokemon de forma alfabética del estado "pokemon"
+
+  // Crear una función para buscar la descripción del Pokemon en español en el estado de "description"    
 
   // Crear una función que reestructure el arreglo con la información de la cadena evolutiva del Pokemon del estado "evolutionPokemon"
 
   return (
-    <>
-      <h1>Aquí irá la interfaz</h1>
+    <>                       
+           <br></br>
+         {
+          
+         }               
+          <br></br>
+         {
+          evolutionPokemon?.map(pokemon =>
+            {
+              pokemon.types.map(value => (
+                <h1>{value.type.name}</h1>
+              ))
+            })
+         }
+          <br></br>         
+         <img src={evolutionPokemon?.[0].sprites.other.dream_world.front_default}></img>
+         
     </>
   );
 };
