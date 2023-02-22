@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import { NotFoundPage, HomeScreen } from "./pages/Index";
-import "./index.css"
+import "./index.css";
 
 const App = () => {
   return (
