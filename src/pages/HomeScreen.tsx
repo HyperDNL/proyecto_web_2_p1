@@ -86,11 +86,12 @@ export const HomeScreen = () => {
   })  
 
   const damage = types?.map((value) => value.damage_relations)
+  const descrption = description?.flavor_text_entries.find(({language}) => language.name === 'es')
   
   const PokemonInterface = {
     id : pokemon?.id,
     name: pokemon?.name,
-    description : description?.flavor_text_entries,
+    description : descrption?.flavor_text,
     Moves: movesOder,
     type : pokemon?.types,
     damage : damage,
@@ -107,21 +108,8 @@ export const HomeScreen = () => {
   return (
     <>                       
            <br></br>
-         {
-          
-         }               
-          <br></br>
-         {
-          evolutionPokemon?.map(pokemon =>
-            {
-              pokemon.types.map(value => (
-                <h1>{value.type.name}</h1>
-              ))
-            })
-         }
-          <br></br>         
-         <img src={evolutionPokemon?.[0].sprites.other.dream_world.front_default}></img>
          
+          <h1>{PokemonInterface.description}</h1>         
     </>
   );
 };
