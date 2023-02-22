@@ -13,69 +13,73 @@ export const HomeScreen = () => {
   const [evolutionPokemon, setEvolutionPokemon] = useState<Pokemon[]>();
   const [searchPokemon, setSearchPokemon] = useState<string | number>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadedData, setIsLoadedData] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
   const getPokemon = async (search: string | number) => {
-    const arrayTypes: Types[] = []; // Arreglo para guardar cada iteración de los tipos de cada Pokemon
+    const arrayTypes: Types[] = [];
 
-    const [pokemonRes, speciesRes] = await Promise.all([
-      axios
-        .get(`https://pokeapi.co/api/v2/pokemon/${search}`)
-        .then((res) => res.data)
-        .catch((err) => navigate("/not-found")),
-      axios
-        .get(`https://pokeapi.co/api/v2/pokemon-species/${search}`)
-        .then((res) => res.data)
-        .catch((err) => navigate("/not-found")),
-    ]); // Hace peticiones en cadena de forma Asíncrona
+    await axios
+      .get(`https://pokeapi.co/api/v2/pokemon/${search}`)
+      .then(async (pokemonRes) => {
+        pokemonRes?.data.types.map(async (value: any) => {
+          await axios
+            .get(value?.type.url)
+            .then((res) => arrayTypes.push(res.data))
+            .catch((err) => console.log(err));
+          setTypes([...arrayTypes]);
+        });
 
-    setPokemon(pokemonRes); // Actualiza el estado de la información general del Pokemon
-
-    pokemonRes?.types.map(async (value: any) => {
-      await axios
-        .get(value?.type.url)
-        .then((res) => arrayTypes.push(res.data))
-        .catch((err) => console.log(err));
-      setTypes([...arrayTypes]); // Actualiza el estado de los tipos conservando los valores de cada iteración
-    });
-
-    setDescription({ flavor_text_entries: speciesRes?.flavor_text_entries }); // Actualiza el estado con todas las descripciones
-
-    const evoChainRes = await axios
-      .get(speciesRes?.evolution_chain.url)
-      .then((res) => res.data)
-      .catch((err) => navigate("/not-found")); // Petición para la cadena evolutiva
-
-    const arrayEvolutions: Pokemon[] = []; // Arreglo que almacena las evoluciones
-
-    const firstEvolution = await axios
-      .get(
-        `https://pokeapi.co/api/v2/pokemon/${evoChainRes?.chain.species.name}`
-      )
-      .then((res) => res.data)
-      .catch((err) => navigate("/not-found"));
-    arrayEvolutions.push(firstEvolution);
-    setEvolutionPokemon([...arrayEvolutions]); // Se actualiza el estado de las evoluciones
-
-    evoChainRes?.chain.evolves_to.map(async (value: any) => {
-      await axios
-        .get(`https://pokeapi.co/api/v2/pokemon/${value.species.name}`)
-        .then((res) => arrayEvolutions.push(res.data))
-        .catch((err) => navigate("/not-found"));
-      setEvolutionPokemon([...arrayEvolutions]); // Se vuelve a actualizar el estado de las evoluciones
-    });
-
-    evoChainRes?.chain.evolves_to.map((value: any) =>
-      value.evolves_to.map(async (value: any) => {
         await axios
-          .get(`https://pokeapi.co/api/v2/pokemon/${value.species.name}`)
-          .then((res) => arrayEvolutions.push(res.data))
-          .catch((err) => navigate("/not-found"));
-        setEvolutionPokemon([...arrayEvolutions]); // Se vuelve a actualizar el estado de las evoluciones
+          .get(`https://pokeapi.co/api/v2/pokemon-species/${search}`)
+          .then(async (speciesRes) => {
+            await axios
+              .get(speciesRes?.data.evolution_chain.url)
+              .then(async (evoChainRes) => {
+                const arrayEvolutions: Pokemon[] = [];
+
+                const firstEvolution = await axios
+                  .get(
+                    `https://pokeapi.co/api/v2/pokemon/${evoChainRes?.data.chain.species.name}`
+                  )
+                  .then((res) => res.data)
+                  .catch((err) => console.log(err));
+                arrayEvolutions.push(firstEvolution);
+                setEvolutionPokemon([...arrayEvolutions]);
+
+                evoChainRes?.data.chain.evolves_to.map(async (value: any) => {
+                  await axios
+                    .get(
+                      `https://pokeapi.co/api/v2/pokemon/${value.species.name}`
+                    )
+                    .then((res) => arrayEvolutions.push(res.data))
+                    .catch((err) => console.log(err));
+                  setEvolutionPokemon([...arrayEvolutions]);
+                });
+
+                evoChainRes?.data.chain.evolves_to.map((value: any) =>
+                  value.evolves_to.map(async (value: any) => {
+                    await axios
+                      .get(
+                        `https://pokeapi.co/api/v2/pokemon/${value.species.name}`
+                      )
+                      .then((res) => arrayEvolutions.push(res.data))
+                      .catch((err) => console.log(err));
+                    setEvolutionPokemon([...arrayEvolutions]);
+                  })
+                );
+                setIsLoading(false);
+                setIsLoadedData(true);
+              });
+            setDescription({
+              flavor_text_entries: speciesRes?.data.flavor_text_entries,
+            });
+          });
+        setPokemon(pokemonRes.data);
       })
-    );
-  }; // Hace la petición del Pokemon y regresa objetos con la información requerida
+      .catch(() => navigate("/not-found"));
+  };
 
   const orderedMoves = pokemon?.moves.sort(({ move: nameA }, { move: nameB }) =>
     nameA.name.localeCompare(nameB.name)
@@ -97,10 +101,8 @@ export const HomeScreen = () => {
   };
 
   const search = () => {
-    if (searchPokemon.toString.length === 0) {
-      navigate("/");
-    }
     getPokemon(searchPokemon);
+    setIsLoading(true);
   };
 
   return (
@@ -147,116 +149,121 @@ export const HomeScreen = () => {
               className="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
               onClick={search}
             >
-              Search
+              Buscar
             </button>
           </div>
         </div>
       </div>
-      {!isLoading ? (
-        <>
-          <div className="flex justify-center m-8">
-            <img src={pokemonData.img} alt="imagePokemon"></img>
-          </div>
-          <div className="flex justify-center m-8">
-            <dl>
-              <dt>Nombre</dt>
-              <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                {pokemonData.name}
-              </dd>
-
-              <dt className="mt-2">Tipo(s)</dt>
-              <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                {pokemonData.type?.map((value, i) => (
-                  <h1 key={i}>{value.type.name}</h1>
-                ))}
-              </dd>
-
-              <dt className="mt-2">Descripción</dt>
-              <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                {pokemonData.description}
-              </dd>
-
-              <dt className="mt-2">Movimientos</dt>
-              <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                {pokemonData.moves?.map((value, i) => (
-                  <h1 key={i}>{value.move.name}</h1>
-                ))}
-              </dd>
-
-              <dt className="mt-2">Daños</dt>
-              <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                {pokemonData.damage?.map((value, i) => (
-                  <div key={i}>
-                    <h1>El tipo: {value.name}</h1>
-                    <h1>
-                      Causa el doble de daño a:{" "}
-                      {value.damage_relations.double_damage_to.map(
-                        (value, i) => `${value.name}, `
-                      )}
-                    </h1>
-                    <h1>
-                      Recibe el doble de daño de:{" "}
-                      {value.damage_relations.double_damage_from.map(
-                        (value, i) => `${value.name}, `
-                      )}
-                    </h1>
-                    <h1>
-                      Causa la mitad de daño a:{" "}
-                      {value.damage_relations.half_damage_to.map(
-                        (value, i) => `${value.name}, `
-                      )}
-                    </h1>
-                    <h1>
-                      Recibe la mitad de daño de:{" "}
-                      {value.damage_relations.half_damage_from.map(
-                        (value, i) => `${value.name}, `
-                      )}
-                    </h1>
-                    <h1>
-                      No causa daño a:{" "}
-                      {value.damage_relations.no_damage_to.map(
-                        (value, i) => `${value.name}, `
-                      )}
-                    </h1>
-                    <h1>
-                      No recibe daño de:{" "}
-                      {value.damage_relations.no_damage_from.map(
-                        (value, i) => `${value.name}, `
-                      )}
-                    </h1>
-                  </div>
-                ))}
-              </dd>
-              <dt className="mt-2">Cadena Evolutiva</dt>
-              {pokemonData.evolution?.map((value) => (
+      {isLoadedData ? (
+        !isLoading ? (
+          <>
+            <div className="flex justify-center m-8">
+              <img src={pokemonData.img} alt="imagePokemon"></img>
+            </div>
+            <div className="flex justify-center m-8">
+              <dl>
+                <dt>Nombre</dt>
                 <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                  <dt className="mt-2">Nombre</dt>
-                  <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                    {value.name}
-                  </dd>
-                  <dt className="mt-2">Tipo(s)</dt>
-                  <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                    {value.types.map((value) => (
-                      <h1>{value.type.name}</h1>
-                    ))}
-                  </dd>
-                  <div className="flex justify-center m-8">
-                    <img
-                      src={value.sprites.other.dream_world.front_default}
-                      alt="imagePokemon"
-                    />
-                  </div>
-                  <br></br>
+                  {pokemonData.name}
                 </dd>
-              ))}
-            </dl>
+
+                <dt className="mt-2">Tipo(s)</dt>
+                <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
+                  {pokemonData.type?.map((value, i) => (
+                    <h1 key={i}>{value.type.name}</h1>
+                  ))}
+                </dd>
+
+                <dt className="mt-2">Descripción</dt>
+                <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
+                  {pokemonData.description}
+                </dd>
+
+                <dt className="mt-2">Movimientos</dt>
+                <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
+                  {pokemonData.moves?.map((value, i) => (
+                    <h1 key={i}>{value.move.name}</h1>
+                  ))}
+                </dd>
+
+                <dt className="mt-2">Daños</dt>
+                <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
+                  {pokemonData.damage?.map((value, i) => (
+                    <div key={i}>
+                      <h1>El tipo: {value.name}</h1>
+                      <h1>
+                        Causa el doble de daño a:{" "}
+                        {value.damage_relations.double_damage_to.map(
+                          (value) => `${value.name}, `
+                        )}
+                      </h1>
+                      <h1>
+                        Recibe el doble de daño de:{" "}
+                        {value.damage_relations.double_damage_from.map(
+                          (value) => `${value.name}, `
+                        )}
+                      </h1>
+                      <h1>
+                        Causa la mitad de daño a:{" "}
+                        {value.damage_relations.half_damage_to.map(
+                          (value) => `${value.name}, `
+                        )}
+                      </h1>
+                      <h1>
+                        Recibe la mitad de daño de:{" "}
+                        {value.damage_relations.half_damage_from.map(
+                          (value) => `${value.name}, `
+                        )}
+                      </h1>
+                      <h1>
+                        No causa daño a:{" "}
+                        {value.damage_relations.no_damage_to.map(
+                          (value) => `${value.name}, `
+                        )}
+                      </h1>
+                      <h1>
+                        No recibe daño de:{" "}
+                        {value.damage_relations.no_damage_from.map(
+                          (value) => `${value.name}, `
+                        )}
+                      </h1>
+                    </div>
+                  ))}
+                </dd>
+                <dt className="mt-2">Cadena Evolutiva</dt>
+                {pokemonData.evolution?.map((value, i) => (
+                  <dd
+                    key={i}
+                    className="px-1.5 ring-1 ring-slate-200 rounded text-xl"
+                  >
+                    <dt className="mt-2">Nombre</dt>
+                    <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
+                      {value.name}
+                    </dd>
+                    <dt className="mt-2">Tipo(s)</dt>
+                    <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
+                      {value.types.map((value) => (
+                        <h1>{value.type.name}</h1>
+                      ))}
+                    </dd>
+                    <div className="flex justify-center m-8">
+                      <img
+                        src={value.sprites.other.dream_world.front_default}
+                        alt="imagePokemon"
+                      />
+                    </div>
+                    <br></br>
+                  </dd>
+                ))}
+              </dl>
+            </div>
+          </>
+        ) : (
+          <div className="flex justify-center align-center">
+            <Loader />
           </div>
-        </>
-      ) : (
-        <div className="flex justify-center align-center">
-          <Loader />
-        </div>
-      )}
+        )
+      ) : null}
     </div>
   );
 };
