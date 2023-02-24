@@ -22,61 +22,55 @@ export const HomeScreen = () => {
 
     await axios
       .get(`https://pokeapi.co/api/v2/pokemon/${search}`)
-      .then(async (pokemonRes) => {
-        pokemonRes?.data.types.map(async (value: any) => {
+      .then(async ({ data }) => {
+        data.types.map(async ({ type }: any) => {
           await axios
-            .get(value?.type.url)
-            .then((res) => arrayTypes.push(res.data))
+            .get(type.url)
+            .then(({ data }) => arrayTypes.push(data))
             .catch((err) => console.log(err));
           setTypes([...arrayTypes]);
         });
 
         await axios
           .get(`https://pokeapi.co/api/v2/pokemon-species/${search}`)
-          .then(async (speciesRes) => {
-            await axios
-              .get(speciesRes?.data.evolution_chain.url)
-              .then(async (evoChainRes) => {
-                const arrayEvolutions: Pokemon[] = [];
+          .then(async ({ data }) => {
+            await axios.get(data.evolution_chain.url).then(async ({ data }) => {
+              const arrayEvolutions: Pokemon[] = [];
 
-                const firstEvolution = await axios
-                  .get(
-                    `https://pokeapi.co/api/v2/pokemon/${evoChainRes?.data.chain.species.name}`
-                  )
-                  .then((res) => res.data)
+              const firstEvolution = await axios
+                .get(
+                  `https://pokeapi.co/api/v2/pokemon/${data.chain.species.name}`
+                )
+                .then(({ data }) => data)
+                .catch((err) => console.log(err));
+              arrayEvolutions.push(firstEvolution);
+              setEvolutionPokemon([...arrayEvolutions]);
+
+              data.chain.evolves_to.map(async ({ species }: any) => {
+                await axios
+                  .get(`https://pokeapi.co/api/v2/pokemon/${species.name}`)
+                  .then(({ data }) => arrayEvolutions.push(data))
                   .catch((err) => console.log(err));
-                arrayEvolutions.push(firstEvolution);
                 setEvolutionPokemon([...arrayEvolutions]);
+              });
 
-                evoChainRes?.data.chain.evolves_to.map(async (value: any) => {
+              data.chain.evolves_to.map(({ evolves_to }: any) =>
+                evolves_to.map(async ({ species }: any) => {
                   await axios
-                    .get(
-                      `https://pokeapi.co/api/v2/pokemon/${value.species.name}`
-                    )
-                    .then((res) => arrayEvolutions.push(res.data))
+                    .get(`https://pokeapi.co/api/v2/pokemon/${species.name}`)
+                    .then(({ data }) => arrayEvolutions.push(data))
                     .catch((err) => console.log(err));
                   setEvolutionPokemon([...arrayEvolutions]);
-                });
-
-                evoChainRes?.data.chain.evolves_to.map((value: any) =>
-                  value.evolves_to.map(async (value: any) => {
-                    await axios
-                      .get(
-                        `https://pokeapi.co/api/v2/pokemon/${value.species.name}`
-                      )
-                      .then((res) => arrayEvolutions.push(res.data))
-                      .catch((err) => console.log(err));
-                    setEvolutionPokemon([...arrayEvolutions]);
-                  })
-                );
-                setIsLoading(false);
-                setIsLoadedData(true);
-              });
+                })
+              );
+              setIsLoading(false);
+              setIsLoadedData(true);
+            });
             setDescription({
-              flavor_text_entries: speciesRes?.data.flavor_text_entries,
+              flavor_text_entries: data.flavor_text_entries,
             });
           });
-        setPokemon(pokemonRes.data);
+        setPokemon(data);
       })
       .catch(() => navigate("/not-found"));
   };
@@ -90,15 +84,16 @@ export const HomeScreen = () => {
   );
 
   const pokemonData = {
-    id: pokemon?.id,
-    name: pokemon?.name,
     img: pokemon?.sprites.other.dream_world.front_default,
+    name: pokemon?.name,
     description: _description?.flavor_text,
     moves: orderedMoves,
     type: pokemon?.types,
     damage: types,
     evolution: evolutionPokemon,
   };
+
+  const { img, name, moves, type, damage, evolution } = pokemonData;
 
   const search = () => {
     getPokemon(searchPokemon);
@@ -139,8 +134,8 @@ export const HomeScreen = () => {
               id="default-search"
               className="block w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
               placeholder="Encuentra a tu Pokemon"
-              onChange={(event) => {
-                setSearchPokemon(event.target.value);
+              onChange={({ target }) => {
+                setSearchPokemon(target.value);
               }}
               required
             ></input>
@@ -158,18 +153,18 @@ export const HomeScreen = () => {
         !isLoading ? (
           <>
             <div className="flex justify-center m-8">
-              <img src={pokemonData.img} alt="imagePokemon"></img>
+              <img src={img} alt="imagePokemon"></img>
             </div>
             <div className="flex justify-center m-8">
               <dl>
                 <dt>Nombre</dt>
                 <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                  {pokemonData.name}
+                  {name}
                 </dd>
 
                 <dt className="mt-2">Tipo(s)</dt>
                 <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                  {pokemonData.type?.map((value, i) => (
+                  {type?.map((value, i) => (
                     <h1 key={i}>{value.type.name}</h1>
                   ))}
                 </dd>
@@ -181,14 +176,14 @@ export const HomeScreen = () => {
 
                 <dt className="mt-2">Movimientos</dt>
                 <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                  {pokemonData.moves?.map((value, i) => (
+                  {moves?.map((value, i) => (
                     <h1 key={i}>{value.move.name}</h1>
                   ))}
                 </dd>
 
                 <dt className="mt-2">Daños</dt>
                 <dd className="px-1.5 ring-1 ring-slate-200 rounded text-xl">
-                  {pokemonData.damage?.map((value, i) => (
+                  {damage?.map((value, i) => (
                     <div key={i}>
                       <h1>El tipo: {value.name}</h1>
                       <h1>
@@ -231,7 +226,7 @@ export const HomeScreen = () => {
                   ))}
                 </dd>
                 <dt className="mt-2">Cadena Evolutiva</dt>
-                {pokemonData.evolution?.map((value, i) => (
+                {evolution?.map((value, i) => (
                   <dd
                     key={i}
                     className="px-1.5 ring-1 ring-slate-200 rounded text-xl"
